@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>宙音 / Sorane — Webエンジニア</title>
+<meta name="description" content="Webエンジニア 宙音 / Sorane。壊れにくい設計と、暗黙知の言語化を起点に開発します。">
+<meta name="theme-color" content="#FCFCFD" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151A" media="(prefers-color-scheme: dark)">
+
+<style>
+/* ============================================================
+   1. トークン
+   ============================================================ */
+:root {
+  /*
+    color-scheme の宣言は必須。
+    これが無いとブラウザが自動ダーク化のヒューリスティックを適用し、
+    背景色だけが機械的に反転して文字色が取り残される。
+  */
+  color-scheme: light dark;
+
+  /* ブランド3色 */
+  --cobalt:      #0047AB;
+  --marine:      #0E7C9E;
+  --emerald:     #50C878;
+  --emerald-ink: #0E7A57;  /* 文字・罫線用。明るい --emerald は明地の本文に使わない */
+
+  /* 無彩色 */
+  --paper: #FCFCFD;
+  --ink:   #14181D;
+  --muted: #5A6472;
+  --line:  #E2E6EB;
+
+  /* 面 */
+  --nav-bg: rgba(252, 252, 253, 0.94);
+  --tag-bg: rgba(255, 255, 255, 0.6);
+
+  /* 背景アクセントの合成方法。明地は乗算、暗地はスクリーン */
+  --blend: multiply;
+
+  /* 書体 */
+  --font-sans: system-ui, -apple-system, "Hiragino Kaku Gothic ProN",
+               "Noto Sans JP", "Yu Gothic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* 余白スケール */
+  --s1: 0.5rem;
+  --s2: 1rem;
+  --s3: 1.5rem;
+  --s4: 2.5rem;
+  --s5: 4rem;
+  --s6: 6rem;
+
+  /* 行幅 */
+  --measure: 34rem;
+
+  /* ナビの高さ（スクロール位置の補正に使う） */
+  --nav-h: 3.5rem;
+}
+
+/*
+  ダークテーマ
+  ------------------------------------------------------------
+  ブランド3色をそのまま使うと暗地でコントラストが取れないため、
+  明度を上げた値へ差し替える。--emerald-ink は明地でのみ
+  暗くする必要がある変数なので、暗地では --emerald と同値にする。
+*/
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cobalt:      #6FA8FF;
+    --marine:      #4FC3DE;
+    --emerald:     #5FD98A;
+    --emerald-ink: #5FD98A;
+
+    --paper: #12151A;
+    --ink:   #E9EDF2;
+    --muted: #9AA6B4;
+    --line:  #262D36;
+
+    --nav-bg: rgba(18, 21, 26, 0.94);
+    --tag-bg: rgba(255, 255, 255, 0.05);
+
+    --blend: screen;
+  }
+}
+
+/* ============================================================
+   2. 基盤
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--nav-h);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--marine);
+  outline-offset: 3px;
+}
+
+a { color: var(--cobalt); }
+
+/* ============================================================
+   3. 背景アクセント
+   ------------------------------------------------------------
+   画面の角に固定する。viewBox の角ではなく「画面の角」に置くため、
+   単一SVGを引き伸ばすのではなく2枚に分割している。
+   各SVGは内部のマスクで内側へ向かって消えるため、
+   画面比率やサイズに関わらずテキスト列へ侵入しない。
+   ============================================================ */
+.accent {
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  width:  min(64vmin, 32rem);
+  height: min(64vmin, 32rem);
+  transition: opacity 600ms ease-out;
+}
+
+.accent--tr { top: 0; right: 0; }
+.accent--bl { bottom: 0; left: 0; }
+
+/*
+  「仕事の進め方」以降は読みやすさを優先し、背景を退かせる。
+  地が白のため、不透明度を下げること自体が白いモヤとして機能する。
+  class の付け外しのみ JS が行い、フェードは CSS に任せる
+  （scroll イベントで毎フレーム計算すると
+   モバイルのスクロール性能に直接響くため）。
+*/
+body.is-reading .accent { opacity: 0.1; }
+
+/*
+  円弧の合成モード。
+  インラインの style 属性で書くと CSS から上書きできないため、
+  クラスに逃がしてテーマごとに切り替える。
+*/
+.accent-blobs { mix-blend-mode: var(--blend); }
+
+/* ============================================================
+   4. レイアウト
+   ============================================================ */
+.wrap {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: var(--s3);
+}
+
+.site-header  { padding-block: var(--s5); }
+.site-section { padding-block: var(--s5); }
+.site-footer  { padding-block: var(--s5) var(--s6); }
+
+/* ============================================================
+   5. ナビゲーション
+   ============================================================ */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(
+    90deg,
+    var(--emerald) 0%,
+    var(--marine) 18%,
+    var(--cobalt) 60%,
+    var(--cobalt) 100%
+  ) 1;
+  border-bottom: 1px solid var(--line);
+  background: var(--nav-bg);
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding-block: var(--s2);
+}
+
+.nav-brand {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--s3);
+}
+
+.nav-list a {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  padding-block: 0.25em;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-list a:hover { color: var(--cobalt); }
+
+.nav-list a[aria-current="page"] {
+  color: var(--cobalt);
+  border-bottom-color: var(--cobalt);
+}
+
+/* ============================================================
+   6. タイポグラフィ
+   ============================================================ */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--marine);
+  margin: 0 0 var(--s2);
+}
+
+.name {
+  font-size: clamp(2rem, 1.5rem + 2.4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.name .romaji {
+  display: block;
+  margin-top: var(--s1);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.5em;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--s3);
+  padding-bottom: var(--s1);
+  border-bottom: 1px solid var(--line);
+}
+
+/* ============================================================
+   7. 対応可能領域タグ
+   ============================================================ */
+.tag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) 0.75rem;
+}
+
+.tag-list li {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  padding: 0.35em 0.9em;
+  border: 1px solid var(--marine);
+  border-radius: 999px;
+  color: var(--marine);
+  background: var(--tag-bg);
+}
+
+/* ============================================================
+   8. 特徴
+   ============================================================ */
+.trait-list {
+  display: grid;
+  gap: var(--s4);
+}
+
+.trait h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 var(--s2);
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--emerald-ink);
+}
+
+.trait p { margin: 0; }
+
+.trait .en {
+  margin-top: var(--s2);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  color: var(--cobalt);
+}
+
+/* ============================================================
+   9. フッター
+   ============================================================ */
+.site-footer .section-label { margin-bottom: var(--s2); }
+
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s1);
+}
+
+.link-list a {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+
+.version {
+  margin: var(--s4) 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* ============================================================
+   10. 画面幅による調整（モバイルファースト）
+   ============================================================ */
+@media (min-width: 48rem) {
+  :root { --measure: 38rem; }
+  .trait-list { gap: var(--s5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .accent { transition: none; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ============================================================
+     背景アクセント：右上
+     装飾のため支援技術からは隠す。
+     マスクは自分の角（600,0）を中心とし、内側へ向かって消える。
+     gradientUnits="userSpaceOnUse" は必須（既定値だと適用先の
+     バウンディングボックス基準になり、意図した半径にならない）。
+     ============================================================ -->
+<svg class="accent accent--tr"
+     viewBox="0 0 600 600"
+     preserveAspectRatio="xMaxYMin slice"
+     xmlns="http://www.w3.org/2000/svg"
+     aria-hidden="true"
+     focusable="false">
+  <defs>
+    <linearGradient id="grad-tr" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--emerald)" />
+      <stop offset="18%"  stop-color="var(--marine)" />
+      <stop offset="60%"  stop-color="var(--cobalt)" />
+      <stop offset="100%" stop-color="var(--cobalt)" />
+    </linearGradient>
+
+    <radialGradient id="soft-em-tr" gradientUnits="userSpaceOnUse" cx="600" cy="0" r="380">
+      <stop offset="0%"   stop-color="var(--emerald)" stop-opacity="0.55" />
+      <stop offset="65%"  stop-color="var(--emerald)" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="var(--emerald)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="soft-ma-tr" gradientUnits="userSpaceOnUse" cx="470" cy="70" r="300">
+      <stop offset="0%"   stop-color="var(--marine)" stop-opacity="0.50" />
+      <stop offset="65%"  stop-color="var(--marine)" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="var(--marine)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="soft-co-tr" gradientUnits="userSpaceOnUse" cx="580" cy="200" r="260">
+      <stop offset="0%"   stop-color="var(--cobalt)" stop-opacity="0.45" />
+      <stop offset="65%"  stop-color="var(--cobalt)" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="var(--cobalt)" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- 角で可視、内側へ向かって不可視 -->
+    <radialGradient id="fade-tr" gradientUnits="userSpaceOnUse" cx="600" cy="0" r="580">
+      <stop offset="0%"   stop-color="#FFFFFF" />
+      <stop offset="42%"  stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <mask id="mask-tr">
+      <rect x="-100" y="-100" width="800" height="800" fill="url(#fade-tr)" />
+    </mask>
+  </defs>
+
+  <g mask="url(#mask-tr)">
+    <g class="accent-blobs" opacity="0.9">
+      <circle cx="600" cy="0"   r="380" fill="url(#soft-em-tr)" />
+      <circle cx="470" cy="70"  r="300" fill="url(#soft-ma-tr)" />
+      <circle cx="580" cy="200" r="260" fill="url(#soft-co-tr)" />
+    </g>
+
+    <g transform="rotate(-23 600 0)" opacity="0.85">
+      <rect x="60"  y="-46" width="620" height="26" fill="url(#grad-tr)" />
+      <rect x="120" y="6"   width="560" height="12" fill="url(#grad-tr)" opacity="0.7" />
+      <rect x="190" y="42"  width="490" height="5"  fill="url(#grad-tr)" opacity="0.5" />
+    </g>
+  </g>
+</svg>
+
+
+<!-- ============ 背景アクセント：左下 ============ -->
+<svg class="accent accent--bl"
+     viewBox="0 0 600 600"
+     preserveAspectRatio="xMinYMax slice"
+     xmlns="http://www.w3.org/2000/svg"
+     aria-hidden="true"
+     focusable="false">
+  <defs>
+    <linearGradient id="grad-bl" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--cobalt)" />
+      <stop offset="40%"  stop-color="var(--cobalt)" />
+      <stop offset="82%"  stop-color="var(--marine)" />
+      <stop offset="100%" stop-color="var(--emerald)" />
+    </linearGradient>
+
+    <radialGradient id="soft-co-bl" gradientUnits="userSpaceOnUse" cx="0" cy="600" r="360">
+      <stop offset="0%"   stop-color="var(--cobalt)" stop-opacity="0.45" />
+      <stop offset="65%"  stop-color="var(--cobalt)" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="var(--cobalt)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="soft-ma-bl" gradientUnits="userSpaceOnUse" cx="140" cy="540" r="280">
+      <stop offset="0%"   stop-color="var(--marine)" stop-opacity="0.50" />
+      <stop offset="65%"  stop-color="var(--marine)" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="var(--marine)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="soft-em-bl" gradientUnits="userSpaceOnUse" cx="-20" cy="420" r="230">
+      <stop offset="0%"   stop-color="var(--emerald)" stop-opacity="0.55" />
+      <stop offset="65%"  stop-color="var(--emerald)" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="var(--emerald)" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="fade-bl" gradientUnits="userSpaceOnUse" cx="0" cy="600" r="580">
+      <stop offset="0%"   stop-color="#FFFFFF" />
+      <stop offset="42%"  stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <mask id="mask-bl">
+      <rect x="-100" y="-100" width="800" height="800" fill="url(#fade-bl)" />
+    </mask>
+  </defs>
+
+  <g mask="url(#mask-bl)">
+    <g class="accent-blobs" opacity="0.9">
+      <circle cx="0"   cy="600" r="360" fill="url(#soft-co-bl)" />
+      <circle cx="140" cy="540" r="280" fill="url(#soft-ma-bl)" />
+      <circle cx="-20" cy="420" r="230" fill="url(#soft-em-bl)" />
+    </g>
+
+    <g transform="rotate(-23 0 600)" opacity="0.85">
+      <rect x="-80" y="626" width="600" height="22" fill="url(#grad-bl)" />
+      <rect x="-80" y="668" width="520" height="9"  fill="url(#grad-bl)" opacity="0.6" />
+    </g>
+  </g>
+</svg>
+
+
+<nav class="site-nav" aria-label="サイト内ナビゲーション">
+  <div class="wrap nav-inner">
+    <a class="nav-brand" href="#top">Sorane</a>
+    <ul class="nav-list">
+      <li><a href="#about" aria-current="page">About</a></li>
+      <!-- 将来の追加位置：Blog / Portfolio -->
+    </ul>
+  </div>
+</nav>
+
+
+<header class="site-header" id="top">
+  <div class="wrap">
+    <p class="eyebrow">Web Engineer</p>
+    <h1 class="name">
+      宙音
+      <span class="romaji">Sorane</span>
+    </h1>
+  </div>
+</header>
+
+
+<main id="about">
+
+  <section class="site-section" aria-labelledby="capability-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="capability-heading">対応可能領域</h2>
+      <ul class="tag-list" id="capability-tags"></ul>
+    </div>
+  </section>
+
+
+  <section class="site-section" id="approach" aria-labelledby="approach-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="approach-heading">仕事の進め方</h2>
+
+      <div class="trait-list">
+
+        <article class="trait">
+          <h3>問題が起きない設計を志向する</h3>
+          <p>トラブルを素早く解決することより、そもそもトラブルが起きにくい仕組みを最初から設計することを重視します。前職では業務フローの文書化と運用の標準化を自発的に行い、現場が滞りなく回る土台を作っていました。</p>
+        </article>
+
+        <article class="trait">
+          <h3>暗黙知を言語化する</h3>
+          <p>口頭でなんとなく共有される情報を信用せず、誰の目にも明らかな形で明文化・構造化する習慣を持っています。設計意図や運用方針、特に「どのような選択肢が存在しており何故却下したか」を設計書・仕様書として残すことで属人化を防ぎ、プロジェクトの持続性に貢献します。</p>
+        </article>
+
+        <article class="trait">
+          <h3>AIを開発プロセスの一部として設計する</h3>
+          <p>AIを便利な検索ツールとしてのみならず、開発プロセスの構造的な一部として組み込みます。何を任せ何を人間が判断するかの境界を明示し、取り返しのつかない操作に人間の承認を必ず挟みます。速度と安全性のどちらかを諦めないための設計であり、成果物の責任がAIに移ることはないという前提を崩しません。</p>
+          <p class="en">Responsible agentic engineering, not vibe coding.</p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+
+<footer class="site-footer">
+  <div class="wrap">
+    <h2 class="section-label">連絡先</h2>
+    <ul class="link-list">
+      <li><a href="mailto:contact@sumikaze.tech">メールで連絡する</a></li>
+      <li><a href="https://github.com/sorane-sumikaze" rel="me">GitHub — sorane-sumikaze</a></li>
+    </ul>
+    <p class="version">Version 1.0 — Last update: <time datetime="2026-08-15">2026-08-15</time></p>
+  </div>
+</footer>
+
+
+<script>
+/* ------------------------------------------------------------
+   対応可能領域タグ
+   ここが唯一の定義箇所。増減はこの配列だけを編集する。
+
+   掲載基準：実際にアクションを起こしている領域。
+   ライティングはマッチング決着まで載せない（Issue #6 / #76）。
+   ------------------------------------------------------------ */
+const CAPABILITIES = [
+  'Webアプリ設計',
+];
+
+(function renderCapabilities() {
+  const mount = document.getElementById('capability-tags');
+  if (!mount) return;
+
+  const frag = document.createDocumentFragment();
+  for (const label of CAPABILITIES) {
+    const li = document.createElement('li');
+    li.textContent = label;
+    frag.appendChild(li);
+  }
+  mount.appendChild(frag);
+})();
+
+
+/* ------------------------------------------------------------
+   背景アクセントの減光
+
+   「仕事の進め方」セクションの先頭が画面上部 35% の線を
+   越えたら body.is-reading を付ける。以降は読みやすさを優先。
+
+   scroll イベントを使わず IntersectionObserver で境界の
+   通過だけを検知する。JS は class の付け外しのみを担当し、
+   フェードは CSS のトランジションが処理する。
+
+   rootMargin は上下の両方を指定して root を「線」にすること。
+   上端だけを指定すると root が画面下端までの広い帯になり、
+   セクションが画面下から入った瞬間にコールバックが走ってしまう。
+   その時点ではまだ線を跨いでいないため判定が false になり、
+   以後セクションが画面上端を抜けるまで再発火しない。
+
+   調整点：
+     - 切り替わる位置 : rootMargin の2つの値（上 -35% / 下 -65%、合計 -100%）
+     - 減光後の濃さ   : CSS の body.is-reading .accent の opacity
+   ------------------------------------------------------------ */
+(function watchReadingZone() {
+  const target = document.getElementById('approach');
+  if (!target || !('IntersectionObserver' in window)) return;
+
+  const io = new IntersectionObserver(function (entries) {
+    const e = entries[0];
+    const lineY = e.rootBounds ? e.rootBounds.top : 0;
+
+    // セクション先頭が線より上にある ＝ すでに読み始めている
+    const isReading = e.boundingClientRect.top <= lineY;
+    document.body.classList.toggle('is-reading', isReading);
+  }, {
+    rootMargin: '-35% 0px -65% 0px',
+    threshold: 0,
+  });
+
+  io.observe(target);
+})();
+</script>
+
+</body>
+</html>
