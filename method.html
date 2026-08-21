@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI前提の開発プロセス — 設計の形式 | 宙音 / Sorane</title>
+<meta name="description" content="要件の固定から実装完了時の照合まで。AIに実装を委ねる前提で組んだ開発プロセスの形式を公開しています。">
+<meta name="theme-color" content="#FCFCFD" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151A" media="(prefers-color-scheme: dark)">
+
+<style>
+/* ============================================================
+   1. トークン（index.html と共通。将来 CSS を外出しする際は
+      この節をそのまま切り出す）
+   ============================================================ */
+:root {
+  color-scheme: light dark;
+
+  --cobalt:      #0047AB;
+  --marine:      #0E7C9E;
+  --emerald:     #50C878;
+  --emerald-ink: #0E7A57;
+
+  --paper: #FCFCFD;
+  --ink:   #14181D;
+  --muted: #5A6472;
+  --line:  #E2E6EB;
+
+  --nav-bg: rgba(252, 252, 253, 0.94);
+  --tag-bg: rgba(255, 255, 255, 0.6);
+
+  --blend: multiply;
+
+  --font-sans: system-ui, -apple-system, "Hiragino Kaku Gothic ProN",
+               "Noto Sans JP", "Yu Gothic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --s1: 0.5rem;
+  --s2: 1rem;
+  --s3: 1.5rem;
+  --s4: 2.5rem;
+  --s5: 4rem;
+  --s6: 6rem;
+
+  --measure: 34rem;
+  --nav-h: 3.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cobalt:      #6FA8FF;
+    --marine:      #4FC3DE;
+    --emerald:     #5FD98A;
+    --emerald-ink: #5FD98A;
+
+    --paper: #12151A;
+    --ink:   #E9EDF2;
+    --muted: #9AA6B4;
+    --line:  #262D36;
+
+    --nav-bg: rgba(18, 21, 26, 0.94);
+    --tag-bg: rgba(255, 255, 255, 0.05);
+
+    --blend: screen;
+  }
+}
+
+/* ============================================================
+   2. 基盤
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--nav-h);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--marine);
+  outline-offset: 3px;
+}
+
+a { color: var(--cobalt); }
+
+/* ============================================================
+   3. 背景アクセント
+   ------------------------------------------------------------
+   本ページは初対面の相手が短時間で読む前提のため、
+   トップページより弱く（右上のみ・低不透明度）置く。
+   ============================================================ */
+.accent {
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+  width:  min(64vmin, 32rem);
+  height: min(64vmin, 32rem);
+  opacity: 0.35;
+}
+
+.accent--tr { top: 0; right: 0; }
+.accent-blobs { mix-blend-mode: var(--blend); }
+
+/* ============================================================
+   4. レイアウト
+   ============================================================ */
+.wrap {
+  max-width: var(--measure);
+  margin-inline: auto;
+  padding-inline: var(--s3);
+}
+
+.site-header  { padding-block: var(--s4) var(--s3); }
+.site-section { padding-block: var(--s4); }
+.site-footer  { padding-block: var(--s4) var(--s6); }
+
+/* ============================================================
+   5. ナビゲーション
+   ============================================================ */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(
+    90deg,
+    var(--emerald) 0%,
+    var(--marine) 18%,
+    var(--cobalt) 60%,
+    var(--cobalt) 100%
+  ) 1;
+  border-bottom: 1px solid var(--line);
+  background: var(--nav-bg);
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding-block: var(--s2);
+}
+
+.nav-brand {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--s3);
+}
+
+.nav-list a {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  padding-block: 0.25em;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-list a:hover { color: var(--cobalt); }
+
+.nav-list a[aria-current="page"] {
+  color: var(--cobalt);
+  border-bottom-color: var(--cobalt);
+}
+
+/* ============================================================
+   6. タイポグラフィ
+   ============================================================ */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--marine);
+  margin: 0 0 var(--s2);
+}
+
+.page-title {
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 var(--s3);
+  padding-bottom: var(--s1);
+  border-bottom: 1px solid var(--line);
+}
+
+/* ============================================================
+   7. 注記
+   ------------------------------------------------------------
+   宣言として置くため、罫線1本のみで示し色面は使わない。
+   ============================================================ */
+.notice {
+  margin: var(--s3) 0 0;
+  padding: var(--s2) 0 var(--s2) 0.9rem;
+  border-left: 3px solid var(--marine);
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.notice strong { color: var(--ink); }
+
+/* ============================================================
+   8. 手順（第1層）
+   ------------------------------------------------------------
+   30秒で読み切れることが要件。1段につき見出し1行＋本文1行に
+   収め、番号は視線の起点としてのみ機能させる。
+   ============================================================ */
+.flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s3);
+  counter-reset: flow;
+}
+
+.flow > li {
+  counter-increment: flow;
+  display: grid;
+  grid-template-columns: 2.1rem 1fr;
+  column-gap: 0.6rem;
+  align-items: baseline;
+}
+
+.flow > li::before {
+  content: counter(flow, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--emerald-ink);
+}
+
+.flow h3 {
+  grid-column: 2;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 0.15rem;
+}
+
+.flow p {
+  grid-column: 2;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/*
+  grid-column の明示は必須。
+  省略すると auto placement で 1 列目（番号カラム・2.1rem）に
+  落ち、幅に潰されて折り返す。
+*/
+.flow .artifact {
+  grid-column: 2;
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: var(--cobalt);
+}
+
+/* ============================================================
+   9. 原則
+   ============================================================ */
+.principle {
+  margin: var(--s4) 0 0;
+  padding: var(--s3);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--tag-bg);
+}
+
+.principle p {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.principle .sub {
+  margin-top: var(--s1);
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.principle .en {
+  margin-top: var(--s2);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--cobalt);
+}
+
+/* ============================================================
+   10. 詳細（第2層）
+   ============================================================ */
+.detail-list {
+  display: grid;
+  gap: var(--s4);
+}
+
+.detail h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 var(--s2);
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--emerald-ink);
+}
+
+.detail p { margin: 0 0 var(--s2); }
+.detail p:last-child { margin-bottom: 0; }
+
+/* ============================================================
+   11. フッター
+   ============================================================ */
+.link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s1);
+}
+
+.link-list a {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+
+.version {
+  margin: var(--s4) 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* ============================================================
+   12. 画面幅による調整（モバイルファースト）
+   ============================================================ */
+@media (min-width: 48rem) {
+  :root { --measure: 38rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- 背景アクセント：右上のみ。詳細は index.html の同要素を参照 -->
+<svg class="accent accent--tr"
+     viewBox="0 0 600 600"
+     preserveAspectRatio="xMaxYMin slice"
+     xmlns="http://www.w3.org/2000/svg"
+     aria-hidden="true"
+     focusable="false">
+  <defs>
+    <linearGradient id="grad-tr" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--emerald)" />
+      <stop offset="18%"  stop-color="var(--marine)" />
+      <stop offset="60%"  stop-color="var(--cobalt)" />
+      <stop offset="100%" stop-color="var(--cobalt)" />
+    </linearGradient>
+
+    <radialGradient id="soft-em-tr" gradientUnits="userSpaceOnUse" cx="600" cy="0" r="380">
+      <stop offset="0%"   stop-color="var(--emerald)" stop-opacity="0.55" />
+      <stop offset="65%"  stop-color="var(--emerald)" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="var(--emerald)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="soft-ma-tr" gradientUnits="userSpaceOnUse" cx="470" cy="70" r="300">
+      <stop offset="0%"   stop-color="var(--marine)" stop-opacity="0.50" />
+      <stop offset="65%"  stop-color="var(--marine)" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="var(--marine)" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="soft-co-tr" gradientUnits="userSpaceOnUse" cx="580" cy="200" r="260">
+      <stop offset="0%"   stop-color="var(--cobalt)" stop-opacity="0.45" />
+      <stop offset="65%"  stop-color="var(--cobalt)" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="var(--cobalt)" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="fade-tr" gradientUnits="userSpaceOnUse" cx="600" cy="0" r="580">
+      <stop offset="0%"   stop-color="#FFFFFF" />
+      <stop offset="42%"  stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    <mask id="mask-tr">
+      <rect x="-100" y="-100" width="800" height="800" fill="url(#fade-tr)" />
+    </mask>
+  </defs>
+
+  <g mask="url(#mask-tr)">
+    <g class="accent-blobs" opacity="0.9">
+      <circle cx="600" cy="0"   r="380" fill="url(#soft-em-tr)" />
+      <circle cx="470" cy="70"  r="300" fill="url(#soft-ma-tr)" />
+      <circle cx="580" cy="200" r="260" fill="url(#soft-co-tr)" />
+    </g>
+
+    <g transform="rotate(-23 600 0)" opacity="0.85">
+      <rect x="60"  y="-46" width="620" height="26" fill="url(#grad-tr)" />
+      <rect x="120" y="6"   width="560" height="12" fill="url(#grad-tr)" opacity="0.7" />
+      <rect x="190" y="42"  width="490" height="5"  fill="url(#grad-tr)" opacity="0.5" />
+    </g>
+  </g>
+</svg>
+
+
+<nav class="site-nav" aria-label="サイト内ナビゲーション">
+  <div class="wrap nav-inner">
+    <a class="nav-brand" href="./">Sorane</a>
+    <ul class="nav-list">
+      <li><a href="./#about">About</a></li>
+      <li><a href="./method.html" aria-current="page">Method</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+<header class="site-header" id="top">
+  <div class="wrap">
+    <p class="eyebrow">Methodology</p>
+    <h1 class="page-title">AI前提の開発プロセス<br>— 設計の形式</h1>
+  </div>
+</header>
+
+
+<main>
+
+  <section class="site-section" aria-labelledby="scope-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="scope-heading">この資料について</h2>
+      <p class="notice">
+        <strong>これは完成した方法論ではなく、案件ごとに更新している現在の版です。</strong>
+        実務経験の長い方から見れば穴があるはずで、ご指摘は積極的にお待ちしています。
+      </p>
+    </div>
+  </section>
+
+
+  <section class="site-section" aria-labelledby="flow-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="flow-heading">実装までの4段</h2>
+
+      <ol class="flow">
+
+        <li>
+          <h3>要求整理と要件固定</h3>
+          <p>聞き取った要求を整理し、実装可能な要件へ翻訳したうえで、構造化した Markdown に版として固定します。以降の判断はすべてこの版を基準に行います。</p>
+          <span class="artifact">→ 要件定義書（版管理）</span>
+        </li>
+
+        <li>
+          <h3>仮定の分離</h3>
+          <p>要件文からは確定できない項目を型別に洗い出し、確認事項の台帳にします。推測で埋めた箇所を、埋めたまま先へ流さないための工程です。</p>
+          <span class="artifact">→ 発注元への確認事項リスト</span>
+        </li>
+
+        <li>
+          <h3>実装</h3>
+          <p>着手前に前提と完了条件を問答形式で確定させ、計画を文書にしてから AI へ渡します。実装中に仕様を決め直す必要のない状態を構成して、不毛な手戻りを防ぎます。</p>
+          <span class="artifact">→ タスク仕様書</span>
+        </li>
+
+        <li>
+          <h3>照合</h3>
+          <p>完了時に、1 で固定した要件と実装を突き合わせます。どの要件がどの実装で満たされたかを追跡可能な形で残します。</p>
+          <span class="artifact">→ 要件⇔実装 対応表</span>
+        </li>
+
+      </ol>
+
+      <div class="principle">
+        <p>推定で埋めた仮定を、仮定のまま実装へ流さない。</p>
+        <p class="sub">各段は AI コーディングエージェントの Skill として固定しており、案件ごとに手順が揺れません。工程そのものを設計対象として扱っています。</p>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="site-section" aria-labelledby="detail-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="detail-heading">前提として置いている設計</h2>
+
+      <div class="detail-list">
+
+        <article class="detail">
+          <h3>取り返しのつかない操作に承認を挟む</h3>
+          <p>やり直せる操作は AI の判断ループに委ね、やり直せない操作に人間の承認を必須とする仕組みを構築します。具体的には、公開、削除、本番環境への書き込み、外部への送信などが後者にあたります。</p>
+          <p>この境界は、プロンプトで禁止するのではなく権限の設計で担保します。読み取りだけで完結する作業には、そもそも書き込み権限を渡さない環境の用意を徹底します。プロンプトは上書きされますが、権限のない操作には判断の余地がありません。</p>
+        </article>
+
+        <article class="detail">
+          <h3>AI に入力してよい情報を、その場で決めない</h3>
+          <p>扱う文書には作成時点で機密区分を付与し、区分ごとに AI への入力可否をあらかじめ定めています。判断を作業中の裁量に委ねると、急いでいる時に基準が緩みます。</p>
+          <p>クライアントから受け取る情報については、公開情報・業務一般・機密・厳秘の4段階で取扱いを分け、匿名化の条件と入力禁止の範囲を文書として定義しています。</p>
+        </article>
+
+        <article class="detail">
+          <h3>却下した選択肢を記録に残す</h3>
+          <p>採用した設計だけでなく、検討して却下した選択肢と、その理由・日付を残します。記録がなければ同じ検討が繰り返され、一度出した結論の根拠も失われるためです。</p>
+        </article>
+
+      </div>
+
+      <div class="principle">
+        <p>エージェントのループから、人間の意思決定を外さない。</p>
+        <p class="sub">速度を捨てずに責任の所在を保つための前提だと考えています。成果物の責任が AI に移ることはありません。</p>
+        <p class="en">Responsible agentic engineering, not vibe coding.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="site-section" aria-labelledby="source-heading">
+    <div class="wrap">
+      <h2 class="section-label" id="source-heading">実例の出典</h2>
+      <p>本ページに書いた形式は、このサイトの実装のほか、私が主導権を持つすべてのプロジェクトに適用しているものです。</p>
+      <ul class="link-list">
+        <li><a href="./">sumikaze.tech — 本サイト</a></li>
+        <li><a href="https://github.com/sorane-sumikaze" rel="me">GitHub — sorane-sumikaze</a></li>
+      </ul>
+      <p class="notice">
+        掲載しているのは進め方の形式のみです。進行中のクライアント案件の要件・設計内容は
+        本資料に含みません。具体例はすべて、自身で運用している公開物から取っています。
+      </p>
+    </div>
+  </section>
+
+</main>
+
+
+<footer class="site-footer">
+  <div class="wrap">
+    <h2 class="section-label">連絡先</h2>
+    <ul class="link-list">
+      <li><a href="mailto:contact@sumikaze.tech">メールで連絡する</a></li>
+      <li><a href="./">トップページへ戻る</a></li>
+    </ul>
+    <p class="version">Methodology digest v1.0 — Last update: <time datetime="2026-08-21">2026-08-21</time></p>
+  </div>
+</footer>
+
+</body>
+</html>
