@@ -1,0 +1,247 @@
+<!doctype html>
+<!--
+  sumikaze.tech デザインボード。
+
+  - 正本は リポジトリ直下の DESIGN.md。本ファイルはその射影であり、DESIGN.md から一方向に埋める
+  - 本ファイルを直接直さない。DESIGN.md を直してから、ここへ転記して撮り直す
+  - 色見本の hex 表記は :root の値から表示する（見本と表記の食い違いを防ぐため）
+  - 撮影（macOS）：
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+        --disable-gpu --hide-scrollbars --window-size=1600,900 \
+        --screenshot=docs/frontend-design/board.png \
+        "file://$PWD/docs/frontend-design/board.html"
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>sumikaze.tech デザインボード</title>
+<style>
+  :root {
+    color-scheme: light;
+
+    /* === DESIGN.md §3-1（明地） === */
+    --cobalt:      #0047AB;
+    --marine:      #0E7C9E;
+    --emerald:     #50C878;
+    --emerald-ink: #0E7A57;
+    --paper: #FCFCFD;
+    --ink:   #14181D;
+    --muted: #5A6472;
+    --line:  #E2E6EB;
+
+    /* === DESIGN.md §3-1（暗地） === */
+    --d-cobalt:      #6FA8FF;
+    --d-marine:      #4FC3DE;
+    --d-emerald:     #5FD98A;
+    --d-emerald-ink: #5FD98A;
+    --d-paper: #12151A;
+    --d-ink:   #E9EDF2;
+    --d-muted: #9AA6B4;
+    --d-line:  #262D36;
+
+    /* === DESIGN.md §3-4 / §3-7 === */
+    --font-sans: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --radius-sm: 4px;
+    --radius-pill: 999px;
+
+    /* ボード自体の組版（DESIGN.md の値ではない） */
+    --board-gap: 20px;
+    --board-label: #8a8a8a;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1600px; height: 900px; overflow: hidden; }
+  body {
+    background: #ffffff; color: var(--ink);
+    font-family: var(--font-sans); font-size: 13px; line-height: 1.5;
+    padding: 28px 32px;
+    display: grid; gap: var(--board-gap);
+    grid-template-columns: 380px 1fr 400px;
+    grid-template-rows: auto 1fr 1fr;
+    grid-template-areas:
+      "head  palette  type"
+      "rules palette  usage"
+      "rules contrast usage";
+  }
+  section { border-top: 2px solid var(--ink); padding-top: 10px; min-width: 0; }
+  h2 { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--board-label); margin-bottom: 10px; }
+
+  .head { grid-area: head; }
+  .head .name { font-size: 30px; font-weight: 700; line-height: 1.2; }
+  .head .job { margin-top: 8px; font-size: 14px; font-weight: 700; }
+  .head .override { margin-top: 6px; color: var(--muted); }
+
+  .palette { grid-area: palette; }
+  .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+  .sw .chip { height: 44px; border-radius: var(--radius-sm); border: 1px solid #e2e2e0; }
+  .sw .tok { margin-top: 4px; font-family: var(--font-mono); font-size: 11px; }
+  .sw .hex { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .sw .role { font-size: 11px; color: var(--muted); line-height: 1.35; }
+  .row-label { font-size: 11px; color: var(--board-label); margin: 10px 0 4px; }
+  .meaning { margin-top: 12px; }
+
+  .type { grid-area: type; }
+  .type .sample { border-bottom: 1px solid var(--line); padding: 5px 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .type .sample .meta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .rules { grid-area: rules; }
+  .rules ul { padding-left: 1.2em; display: grid; gap: 3px; }
+  .rules .ng li::marker { content: "× "; color: #b3261e; }
+
+  .contrast { grid-area: contrast; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--board-label); font-weight: 700; }
+  td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .pair { display: inline-block; padding: 1px 8px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+
+  .usage { grid-area: usage; display: grid; grid-template-rows: auto auto; gap: 12px; align-content: start; }
+  .page { background: var(--paper); border: 1px solid var(--line); padding: 0 20px 14px; font-size: 14px; line-height: 1.85; letter-spacing: .02em; }
+  .page .nav { display: flex; justify-content: space-between; align-items: center; height: 44px; border-bottom: 1px solid var(--line); margin: 0 -20px 12px; padding: 0 20px;
+               border-top: 3px solid transparent; border-image: linear-gradient(90deg, var(--emerald) 0%, var(--marine) 18%, var(--cobalt) 60%, var(--cobalt) 100%) 1; }
+  .page .brand { font-weight: 700; letter-spacing: .04em; }
+  .page .nav span { font-size: 13px; color: var(--muted); margin-left: 16px; letter-spacing: .04em; }
+  .page .nav .cur { color: var(--cobalt); border-bottom: 2px solid var(--cobalt); }
+  .page .label { font-size: 12px; color: var(--muted); letter-spacing: .04em; border-bottom: 1px solid var(--line); padding-bottom: 2px; margin-bottom: 8px; }
+  .page h3 { font-size: 15px; border-left: 3px solid var(--emerald-ink); padding-left: 10px; line-height: 1.6; }
+  .page p { margin-top: 4px; }
+  .page .en { font-size: 12px; color: var(--muted); }
+  .page a { color: var(--cobalt); text-underline-offset: .25em; }
+  .page .id { font-family: var(--font-mono); }
+  .page .tag { display: inline-block; font-size: 12px; border: 1px solid var(--muted); border-radius: var(--radius-pill); padding: 0 10px; }
+  .page .focus { outline: 2px solid var(--marine); outline-offset: 3px; }
+
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mode { border: 1px solid var(--line); height: 92px; position: relative; overflow: hidden; background: var(--paper); }
+  .mode .col { position: absolute; left: 30%; right: 30%; top: 26px; bottom: 8px; border: 1px dashed var(--muted); font-size: 11px; color: var(--muted); display: grid; place-items: center; }
+  .mode .cap { position: absolute; left: 8px; top: 4px; font-size: 11px; font-weight: 700; }
+  .mode.graphic::before { content: ""; position: absolute; right: 0; top: 0; width: 30%; height: 70%;
+    background: radial-gradient(circle at 100% 0, color-mix(in srgb, var(--emerald) 55%, transparent), color-mix(in srgb, var(--cobalt) 25%, transparent) 55%, transparent 75%); }
+  .mode.graphic::after { content: ""; position: absolute; left: 0; bottom: 0; width: 30%; height: 70%;
+    background: radial-gradient(circle at 0 100%, color-mix(in srgb, var(--cobalt) 45%, transparent), color-mix(in srgb, var(--marine) 20%, transparent) 55%, transparent 75%); }
+</style>
+</head>
+<body>
+
+  <section class="head">
+    <h2>このサイトの仕事（§0-1）</h2>
+    <div class="name">sumikaze.tech</div>
+    <p class="job">初対面の読み手が、数分で本人の仕事の進め方を読み取り、連絡するかを決める。</p>
+    <p class="override">美的リスクを取る場所は背景層（画面の角のグラフィック）の1箇所に限る。読み列は静かに保つ（§0-3）。</p>
+  </section>
+
+  <section class="palette">
+    <h2>色（§3-1）と意味の割り当て（§3-2）</h2>
+    <div class="row-label">明地</div>
+    <div class="swatches">
+      <div class="sw" data-token="--cobalt"      data-role="押せる／現在地"></div>
+      <div class="sw" data-token="--emerald-ink" data-role="構造の目印"></div>
+      <div class="sw" data-token="--marine"      data-role="フォーカス・背景層"></div>
+      <div class="sw" data-token="--emerald"     data-role="背景層のみ"></div>
+      <div class="sw" data-token="--ink"         data-role="本文"></div>
+      <div class="sw" data-token="--muted"       data-role="補助"></div>
+      <div class="sw" data-token="--line"        data-role="区切りの罫"></div>
+      <div class="sw" data-token="--paper"       data-role="地"></div>
+    </div>
+    <div class="row-label">暗地（prefers-color-scheme: dark）</div>
+    <div class="swatches">
+      <div class="sw" data-token="--d-cobalt"      data-role=""></div>
+      <div class="sw" data-token="--d-emerald-ink" data-role=""></div>
+      <div class="sw" data-token="--d-marine"      data-role=""></div>
+      <div class="sw" data-token="--d-emerald"     data-role=""></div>
+      <div class="sw" data-token="--d-ink"         data-role=""></div>
+      <div class="sw" data-token="--d-muted"       data-role=""></div>
+      <div class="sw" data-token="--d-line"        data-role=""></div>
+      <div class="sw" data-token="--d-paper"       data-role=""></div>
+    </div>
+    <table class="meaning">
+      <tr><th>色</th><th>意味</th><th>適用例</th></tr>
+      <tr><td>--cobalt</td><td>押せる／現在地</td><td>リンク、ナビのホバーと現在のページ</td></tr>
+      <tr><td>--emerald-ink</td><td>構造の目印</td><td>h3 の左罫、手順番号</td></tr>
+      <tr><td>--marine</td><td>フォーカス</td><td>:focus-visible のリング</td></tr>
+      <tr><td>--muted</td><td>補助</td><td>eyebrow、節ラベル、英文、成果物名、版表記、タグの枠</td></tr>
+      <tr><td>3色すべて</td><td>意味を持たない</td><td>背景層、ナビ上端の罫</td></tr>
+    </table>
+  </section>
+
+  <section class="type">
+    <h2>タイポグラフィ（§3-4 / §3-5）</h2>
+    <div class="sample"><span style="font-size:36px;font-weight:700;line-height:1.25">宙音</span><span class="meta">display 32–48px / 700</span></div>
+    <div class="sample"><span style="font-size:24px;font-weight:700;line-height:1.45">ページ題</span><span class="meta">title 24–32px / 700</span></div>
+    <div class="sample"><span style="font-size:18px;font-weight:700">見出し h3</span><span class="meta">lg 18px / 700</span></div>
+    <div class="sample"><span style="font-size:16px;letter-spacing:.02em">本文のサンプル。行間 1.85</span><span class="meta">base 15.2–16.8px</span></div>
+    <div class="sample"><span style="font-size:14px;color:var(--muted);letter-spacing:.04em">ナビ・eyebrow・タグ・注記</span><span class="meta">sm 14px</span></div>
+    <div class="sample"><span style="font-size:13px;color:var(--muted);letter-spacing:.04em">節ラベル・版表記</span><span class="meta">xs 13px ラベル専用</span></div>
+    <div class="sample"><span><span style="font-family:var(--font-mono)">@sorane_eng</span>　<span style="font-family:var(--font-mono);font-weight:700;color:var(--emerald-ink)">01 02 03</span></span><span class="meta">mono 識別子・手順番号のみ</span></div>
+  </section>
+
+  <section class="rules">
+    <h2>禁止リスト（§1）</h2>
+    <ul class="ng">
+      <li>押せない文字に --cobalt を使う</li>
+      <li>読み列の文字・罫・枠に --marine を使う</li>
+      <li>明るい --emerald を明地の文字に使う</li>
+      <li>ラベル・ナビ・見出し・英文に等幅書体を使う</li>
+      <li>ラベルを大文字化する／字間を 0.04em より広げる</li>
+      <li>見出しの一語だけを強調する</li>
+      <li>順序の無い内容に番号の目印を付ける</li>
+      <li>角丸を 4px / 999px 以外にする。影を使う</li>
+      <li>読み列に入場アニメーションを置く</li>
+      <li>読み列の CSS が系統セレクタを参照する</li>
+    </ul>
+    <h2 style="margin-top:14px">制約（§2）</h2>
+    <ul>
+      <li>読み列の文字は 4.5:1 以上。フォーカス表示は 3:1 以上</li>
+      <li>行幅 --measure 34rem / 38rem（48rem 以上）。1行 40 字以内</li>
+      <li>独立したリンクは 44×44px 以上。文中のリンクは例外</li>
+      <li>背景層は読み列の外側の余白にだけ置く。一辺 min(64vmin, 32rem, (100vw − --measure) × 0.6)</li>
+      <li>日本語の本文に 13px 未満を使わない</li>
+      <li>情報を色のみで伝えない。現在のページは下線を併用</li>
+      <li>reduced motion：系統は変えず、背景層を静止させる</li>
+    </ul>
+  </section>
+
+  <section class="contrast">
+    <h2>コントラスト（§2-1。値は DESIGN.md の計算値を転記）</h2>
+    <table>
+      <tr><th>文字色</th><th>見本（明地）</th><th style="text-align:right">明地</th><th style="text-align:right">暗地</th><th>可否</th></tr>
+      <tr><td>--ink</td><td><span class="pair" style="background:var(--paper);color:var(--ink)">本文 Aa</span></td><td class="num">17.38:1</td><td class="num">15.56:1</td><td>可</td></tr>
+      <tr><td>--muted</td><td><span class="pair" style="background:var(--paper);color:var(--muted)">補助 Aa</span></td><td class="num">5.85:1</td><td class="num">7.39:1</td><td>可</td></tr>
+      <tr><td>--cobalt</td><td><span class="pair" style="background:var(--paper);color:var(--cobalt)">リンク Aa</span></td><td class="num">8.23:1</td><td class="num">7.60:1</td><td>可</td></tr>
+      <tr><td>--emerald-ink</td><td><span class="pair" style="background:var(--paper);color:var(--emerald-ink)">01 Aa</span></td><td class="num">5.20:1</td><td class="num">10.26:1</td><td>可</td></tr>
+      <tr><td>--marine</td><td><span class="pair" style="background:var(--paper);outline:2px solid var(--marine)">リング</span></td><td class="num">4.66:1</td><td class="num">8.88:1</td><td>可（UI 3:1）</td></tr>
+      <tr><td>--emerald</td><td><span class="pair" style="background:var(--paper);color:var(--emerald)">文字 Aa</span></td><td class="num">2.07:1</td><td class="num">10.26:1</td><td>明地の文字は不可</td></tr>
+    </table>
+  </section>
+
+  <section class="usage">
+    <h2>使用例（§4）と2系統（§0-6）</h2>
+    <div class="page">
+      <div class="nav"><span class="brand" style="margin:0;font-size:14px;color:var(--ink)">Sorane</span><div><span>About</span><span class="cur">Method</span></div></div>
+      <div class="label">仕事の進め方</div>
+      <h3>暗黙知を言語化する</h3>
+      <p>口頭で共有される情報を、誰の目にも明らかな形で構造化する。</p>
+      <p class="en">Responsible agentic engineering, not vibe coding.</p>
+      <p><span class="tag">Webアプリ設計</span>　<a href="#">GitHub — <span class="id">sorane-sumikaze</span></a></p>
+      <p><a href="#" class="focus">フォーカス中のリンク</a></p>
+    </div>
+    <div class="modes">
+      <div class="mode"><div class="col">読み列（共通）</div><span class="cap">軽量：背景層なし</span></div>
+      <div class="mode graphic"><div class="col">読み列（共通）</div><span class="cap">グラフィック：列の外側だけ</span></div>
+    </div>
+  </section>
+
+<script>
+  // 色見本：:root のトークン値を読み、見本・トークン名・hex・役割を描く
+  const css = getComputedStyle(document.documentElement);
+  document.querySelectorAll('.sw').forEach(el => {
+    const tok = el.dataset.token;
+    const val = css.getPropertyValue(tok).trim();
+    el.innerHTML =
+      `<div class="chip" style="background:var(${tok})"></div>` +
+      `<div class="tok">${tok}</div><div class="hex">${val}</div>` +
+      `<div class="role">${el.dataset.role}</div>`;
+  });
+</script>
+</body>
+</html>

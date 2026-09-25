@@ -35,6 +35,14 @@
                "Noto Sans JP", "Yu Gothic", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  --text-xs:      0.8125rem;
+  --text-sm:      0.875rem;
+  --text-base:    clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  --text-lg:      1.125rem;
+  --text-title:   clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+  --text-display: clamp(2rem, 1.5rem + 2.4vw, 3rem);
+
+  --s0: 0.25rem;
   --s1: 0.5rem;
   --s2: 1rem;
   --s3: 1.5rem;
@@ -43,7 +51,12 @@
   --s6: 6rem;
 
   --measure: 34rem;
-  --nav-h: 3.5rem;
+
+  --radius-sm:   4px;
+  --radius-pill: 999px;
+
+  --tap: 44px;
+  --nav-h: 4rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,7 +95,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  font-size: var(--text-base);
   line-height: 1.85;
   letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
@@ -105,8 +118,8 @@ a { color: var(--cobalt); }
   position: fixed;
   z-index: -1;
   pointer-events: none;
-  width:  min(64vmin, 32rem);
-  height: min(64vmin, 32rem);
+  width:  min(64vmin, 32rem, (100vw - var(--measure)) * 0.6);
+  height: min(64vmin, 32rem, (100vw - var(--measure)) * 0.6);
   opacity: 0.35;
 }
 
@@ -150,14 +163,16 @@ a { color: var(--cobalt); }
   align-items: center;
   justify-content: space-between;
   gap: var(--s3);
-  padding-block: var(--s2);
+  padding-block: var(--s1);
 }
 
 .nav-brand {
-  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
   font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
+  font-size: var(--text-base);
+  letter-spacing: 0.04em;
   color: var(--ink);
   text-decoration: none;
 }
@@ -171,15 +186,16 @@ a { color: var(--cobalt); }
 }
 
 .nav-list a {
-  display: inline-block;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  font-size: var(--text-sm);
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
   text-decoration: none;
-  padding-block: 0.25em;
   border-bottom: 2px solid transparent;
 }
 
@@ -194,17 +210,15 @@ a { color: var(--cobalt); }
    6. タイポグラフィ
    ============================================================ */
 .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--marine);
+  letter-spacing: 0.04em;
+  color: var(--muted);
   margin: 0 0 var(--s2);
 }
 
 .page-title {
-  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+  font-size: var(--text-title);
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: 0.01em;
@@ -212,16 +226,16 @@ a { color: var(--cobalt); }
 }
 
 .section-label {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
   margin: 0 0 var(--s3);
   padding-bottom: var(--s1);
   border-bottom: 1px solid var(--line);
 }
+
+.id { font-family: var(--font-mono); }
 
 /* ============================================================
    7. 注記
@@ -230,9 +244,9 @@ a { color: var(--cobalt); }
    ============================================================ */
 .notice {
   margin: var(--s3) 0 0;
-  padding: var(--s2) 0 var(--s2) 0.9rem;
-  border-left: 3px solid var(--marine);
-  font-size: 0.92rem;
+  padding: var(--s2) 0 var(--s2) var(--s2);
+  border-left: 3px solid var(--muted);
+  font-size: var(--text-sm);
   line-height: 1.75;
   color: var(--muted);
 }
@@ -257,15 +271,14 @@ a { color: var(--cobalt); }
 .flow > li {
   counter-increment: flow;
   display: grid;
-  grid-template-columns: 2.1rem 1fr;
-  column-gap: 0.6rem;
+  grid-template-columns: var(--s4) 1fr;
   align-items: baseline;
 }
 
 .flow > li::before {
   content: counter(flow, decimal-leading-zero);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--emerald-ink);
@@ -273,31 +286,28 @@ a { color: var(--cobalt); }
 
 .flow h3 {
   grid-column: 2;
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   line-height: 1.6;
-  margin: 0 0 0.15rem;
+  margin: 0 0 var(--s0);
 }
 
 .flow p {
   grid-column: 2;
   margin: 0;
-  font-size: 0.95rem;
 }
 
 /*
   grid-column の明示は必須。
-  省略すると auto placement で 1 列目（番号カラム・2.1rem）に
+  省略すると auto placement で 1 列目（番号カラム・--s4）に
   落ち、幅に潰されて折り返す。
 */
 .flow .artifact {
   grid-column: 2;
   display: block;
-  margin-top: 0.35rem;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.03em;
-  color: var(--cobalt);
+  margin-top: var(--s0);
+  font-size: var(--text-xs);
+  color: var(--muted);
 }
 
 /* ============================================================
@@ -307,31 +317,28 @@ a { color: var(--cobalt); }
   margin: var(--s4) 0 0;
   padding: var(--s3);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--tag-bg);
 }
 
 .principle p {
   margin: 0;
-  font-size: 1.02rem;
   font-weight: 700;
   line-height: 1.7;
 }
 
 .principle .sub {
   margin-top: var(--s1);
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   font-weight: 400;
   color: var(--muted);
 }
 
 .principle .en {
   margin-top: var(--s2);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   font-weight: 400;
-  letter-spacing: 0.03em;
-  color: var(--cobalt);
+  color: var(--muted);
 }
 
 /* ============================================================
@@ -343,11 +350,11 @@ a { color: var(--cobalt); }
 }
 
 .detail h3 {
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   line-height: 1.6;
   margin: 0 0 var(--s2);
-  padding-left: 0.9rem;
+  padding-left: var(--s2);
   border-left: 3px solid var(--emerald-ink);
 }
 
@@ -362,22 +369,21 @@ a { color: var(--cobalt); }
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--s1);
 }
 
+/* flex にしない理由と lh の扱いは index.html の同要素を参照 */
 .link-list a {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  letter-spacing: 0.03em;
+  display: inline-block;
+  min-height: var(--tap);
+  padding-block: calc((var(--tap) - 1lh) / 2);
+  font-size: var(--text-sm);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.25em;
 }
 
 .version {
   margin: var(--s4) 0 0;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
@@ -564,8 +570,8 @@ a { color: var(--cobalt); }
       <h2 class="section-label" id="source-heading">実例の出典</h2>
       <p>本ページに書いた形式は、このサイトの実装のほか、私が主導権を持つすべてのプロジェクトに適用しているものです。</p>
       <ul class="link-list">
-        <li><a href="./">sumikaze.tech — 本サイト</a></li>
-        <li><a href="https://github.com/sorane-sumikaze" rel="me">GitHub — sorane-sumikaze</a></li>
+        <li><a href="./"><span class="id">sumikaze.tech</span> — 本サイト</a></li>
+        <li><a href="https://github.com/sorane-sumikaze" rel="me">GitHub — <span class="id">sorane-sumikaze</span></a></li>
       </ul>
       <p class="notice">
         掲載しているのは進め方の形式のみです。進行中のクライアント案件の要件・設計内容は
@@ -582,7 +588,7 @@ a { color: var(--cobalt); }
     <h2 class="section-label">連絡先</h2>
     <ul class="link-list">
       <li><a href="mailto:contact@sumikaze.tech">メールで連絡する</a></li>
-      <li><a href="https://x.com/sorane_eng" rel="me">X — @sorane_eng</a></li>
+      <li><a href="https://x.com/sorane_eng" rel="me">X — <span class="id">@sorane_eng</span></a></li>
       <li><a href="./">トップページへ戻る</a></li>
     </ul>
     <p class="version">Methodology digest v1.0 — Last update: <time datetime="2026-08-21">2026-08-21</time></p>
