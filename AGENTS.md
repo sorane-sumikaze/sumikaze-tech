@@ -13,3 +13,4 @@
 - `main` への push は公開（GitHub Pages への反映）にあたる。push の前に止まり、確認を取る
 - ビルド工程・ライブラリ・フレームワークを追加しない（README「構成」）
 - `DESIGN.md` のトークンに無い値を CSS に書かない。必要なら先に `DESIGN.md` への追加を提案する
+- `docs/frontend-design/` はフロントエンドの設計を指す領域名で、バックエンドの設計書の `design-docs` と区別している。`docs/design/` への改名を提案しない
